@@ -21,6 +21,11 @@ get_version() {
     /usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$1/Contents/Info.plist" 2>/dev/null || echo "未知"
 }
 
+# 比较版本号，返回 0 表示 $1 > $2
+version_gt() {
+    [ "$(printf '%s\n%s' "$1" "$2" | sort -V | tail -1)" != "$2" ]
+}
+
 ORIGINAL_VER=$(get_version "$ORIGINAL_APP")
 DUAL_VER=$(get_version "$DUAL_APP")
 
@@ -32,14 +37,16 @@ NEED_INSTALL=false
 if [ ! -d "$DUAL_APP" ]; then
     echo "首次运行，正在初始化双开环境..."
     NEED_INSTALL=true
-elif [ "$ORIGINAL_VER" != "$DUAL_VER" ]; then
-    echo "⚠️  检测到版本不一致！微信2版本: $DUAL_VER → 需要更新到: $ORIGINAL_VER"
+elif version_gt "$ORIGINAL_VER" "$DUAL_VER"; then
+    echo "⚠️  检测到新版本！微信2版本: $DUAL_VER → 需要更新到: $ORIGINAL_VER"
     echo ""
     echo "📦 你的聊天记录保存在:"
     echo "   $DATA_DIR"
     echo "   更新应用包不会影响聊天记录，放心！"
     echo ""
     NEED_INSTALL=true
+elif [ "$ORIGINAL_VER" != "$DUAL_VER" ]; then
+    echo "⚠️  版本不一致：微信2版本($DUAL_VER) 高于原版微信($ORIGINAL_VER)，跳过降级。"
 else
     echo "微信2版本: $DUAL_VER（已是最新，无需更新）"
 fi
